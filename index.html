@@ -37,9 +37,8 @@
 
             /* Center the image and position the close button */
             .imgcontainer {
-                text-align: center;
-                margin: -12px 0 -8px 0;
-                position: relative;
+				position: relative;
+				margin: -12px 0 -8px 0;
             }
 
 
@@ -50,8 +49,23 @@
             .container {
                 padding: 12px 12px 3px 12px;
             }
+			.container2 {
+				padding: 12px 12px 3px 12px;
+			}
+			#id03{
+				background-color: #fefefe;
+                margin: 4% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
+                border: 1px solid #888;
+                width: 20%; /* Could be more or less, depending on screen size */
+                height: 60%;
+                overflow-y: auto;
+                overflow-x: visible;
+			}
+			.modal-header{
+                position:absolute;
+				margin-left:20%
 
-
+            }
             /* The Modal (background) */
             .modal {
                 display: none; /* Hidden by default */
@@ -80,7 +94,7 @@
             .close {
                 position: absolute;
                 right: -15px;
-                top: -100;
+                top: -10;
                 color: #000;
                 font-size: 20px;
                 font-weight: bold;
@@ -126,18 +140,31 @@
         <div id="id01" class="modal">
           <form name = "submit-to-google-sheet" class="modal-content animate">
             <div class="imgcontainer">
-              <span onclick="document.getElementById('id01').style.display='none'" class="close" title="Close">&times;</span>
+              <span onclick="$('#id01').modal('hide')" class="close" title="Close">&times;</span>
             </div>
-            <div class="container" role = "main">
+            <div class="container" role = "main" >
               <input name ="wish" type="text" placeholder="Enter your wish" name="uname" autocomplete="off">
               <div  class="button-container">
                   <button type="submit">Submit</button>
-                  <button type="reset">See all wishes</button>
+                  <button onclick="$('#id02').modal('show');$('#id01').modal('hide');">See all wishes</button>
               </div>
             </div>
           </form>
         </div>
 
+		<div id="id02" class="modal">
+
+          <div class="modal-content animate"id="id03">
+			  <div class="modal-header">
+  				<div class="imgcontainer">
+  					<span onclick="$('#id02').modal('hide')" class="close" title="Close">&times;</span>
+  				</div>
+  			</div>
+            <div class="container2" role = "main">
+
+            </div>
+		</div>
+        </div>
 		<div class="console"style="display: none;"></div>
 
 		<script src="js/three.min.js"></script>
@@ -157,6 +184,7 @@
         // Get the modal
             var modal = document.getElementById('id01');
 
+
             // When the user clicks anywhere outside of the modal, close it
             window.onclick = function(event) {
                 if (event.target == modal) {
@@ -173,17 +201,17 @@
 		        .catch(error => console.error('Error!', error.message))
 
 		    })
-			var domEvents   = new THREEx.DomEvents(camera, renderer.domElement)
 
-			domEvents.addEventListener(seed, 'click', function(event){
-			    console.log('you clicked on the mesh')
-                $('#id01').modal('show');
-			}, false)
 			function init(){
+				var loader = new THREE.TextureLoader();
+
+				var skyimg = loader.load("sky.jpg")
+
 				scene = new THREE.Scene();
-				scene.background = new THREE.Color(0xade9ff);
+				scene.background = skyimg
 
 				camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+				camera.position.set(31, 0, 0)
 				renderer = new THREE.WebGLRenderer();
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
@@ -193,21 +221,85 @@
 				light.position.set(0, 0, 10);
 				scene.add(light);
 
-				var loader = new THREE.TextureLoader();
-				var seedimg = loader.load("seed.png")
-				var seedgeo = new THREE.PlaneGeometry(4, 3.67);
-				var seedmat = new THREE.MeshBasicMaterial({map:seedimg, transparent:true});
-				seed = new THREE.Mesh(seedgeo, seedmat);
-				seed.position.set(0, 0, -20);
-				scene.add(seed);
+			}
+			var loader = new THREE.TextureLoader();
+			var seedimg = loader.load("seed.png")
+			var seedgeo = new THREE.PlaneGeometry(4, 3.67);
+			var seedmat = new THREE.MeshBasicMaterial({map:seedimg, transparent:true});
 
+			start = null;
 
+			seeds = []
+			for (var i = 0; i < 7; i++) {
+				addSeed();
+                randomX = Math.random()*103-100
+				seeds[i].mesh.position.set(-100, 0, -18);
+                console.log(randomX)
+				scene.add(seeds[i].mesh);
 			}
 
+			function addSeed(){
+			  var seed = {
+				mesh: new THREE.Mesh(seedgeo, seedmat),
+			    start:null,
+	  			maxX:Math.random()*2 + 66,
+	  			maxY:Math.random()*45 - 20,
+	  			duration:Math.random()*2 + 7,
+	  			gridSize:Math.random()*10 + 5,
+	  			ampvar:Math.random()*0.3 + 0.1,
+                progress:0
+			  }
+			  seeds.push(seed);
+			}
+			for (var i = 0; i < seeds.length; i++) {
+			    var s = seeds[i];
+				if(i===1){
+					console.log('hi')
+					var domEvents   = new THREEx.DomEvents(camera, renderer.domElement)
+
+					domEvents.addEventListener(s.mesh, 'click', function(event){
+						console.log('you clicked on the mesh')
+						$('#id01').modal('show');
+					}, false)
+				}
+
+			}
+            function step(timestamp){
+
+
+                var  x, y, y2;
+                randomX = Math.random()*103-100
+                for (var i = 0; i < seeds.length; i++) {
+                    var s = seeds[i];
+                    if(s.start === null) {s.start = timestamp};
+
+                    s.progress = (timestamp - s.start) / s.duration / 1000;
+                    console.log(s.progress)
+                    x = s.progress * s.maxX/s.gridSize;
+                    y = 2 * Math.sin(x);
+
+                    s.mesh.position.x = Math.min(s.maxX, s.gridSize * x);
+                    s.mesh.position.y = s.maxY/2 +(s.gridSize * y)*s.ampvar;
+
+                    if(s.mesh.position.x >= 66){
+                        s.start = null;
+                        s.maxX = Math.random()*2 + 66;
+                        s.maxY = Math.random()*45 - 20;
+                        s.duration = Math.random()*2 + 7;
+                        s.gridSize = Math.random()*10 + 5;
+                        s.ampvar = Math.random()*0.3 + 0.1;
+
+                        s.mesh.position.x = randomX
+                    }
+                }
+                requestAnimationFrame(step);
+            }
+
+            requestAnimationFrame(step);
 
 			function animate(){
-				requestAnimationFrame(animate);
-				renderer.render(scene, camera);
+				renderer.render(scene,camera)
+  				requestAnimationFrame(animate);
 			}
 
 			function onWindowResize() {
@@ -224,13 +316,14 @@
 				  var html = '';
 				  var entry = data.feed.entry;
 				  for (var i = 0; i < entry.length; i++) {
-				    html += '<p>' + entry[i]['gsx$timestamp']['$t'] + '</p>';
-				    html += '<p>' + entry[i]['gsx$wish']['$t'] + '</p>';
+				    html += '<p>' + entry[i]['gsx$wish']['$t']+ '          ' +entry[i]['gsx$timestamp']['$t'] + '</p>';
 				  }
-				  $('.console').html(html);
+				  $('.container2').html(html);
 				});
 			}
 			printAllWishes();
+
+
 		</script>
 	</body>
 </html>
