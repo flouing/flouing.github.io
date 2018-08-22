@@ -168,9 +168,9 @@
 		<div class="console"style="display: none;"></div>
 
 		<script src="js/three.min.js"></script>
-		<script src = "js/jquery-3.3.1.min.js"></script>
-		<script src="js/threex.domevents.js"></script>
-        <script src = "js/bootstrap.min.js"></script>
+		<script src = "jquery-3.3.1.min.js"></script>
+		<script src="threex.domevents.js"></script>
+        <script src = "bootstrap.min.js"></script>
 
 		<script>
 			var scene, camera, renderer, controls;
@@ -230,9 +230,9 @@
 			start = null;
 
 			seeds = []
-			for (var i = 0; i < 7; i++) {
+			for (var i = 0; i < 10; i++) {
 				addSeed();
-                randomX = Math.random()*103-100
+                randomX = Math.random()*28-25
 				seeds[i].mesh.position.set(-100, 0, -18);
                 console.log(randomX)
 				scene.add(seeds[i].mesh);
@@ -268,14 +268,14 @@
 
 
                 var  x, y, y2;
-                randomX = Math.random()*103-100
+                randomX = Math.random()*28-25
                 for (var i = 0; i < seeds.length; i++) {
                     var s = seeds[i];
                     if(s.start === null) {s.start = timestamp};
 
                     s.progress = (timestamp - s.start) / s.duration / 1000;
                     console.log(s.progress)
-                    x = s.progress * s.maxX/s.gridSize;
+                    x = (s.progress * s.maxX/s.gridSize)-10;
                     y = 2 * Math.sin(x);
 
                     s.mesh.position.x = Math.min(s.maxX, s.gridSize * x);
