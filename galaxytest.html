@@ -1,0 +1,738 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="js/three.min.js"></script>
+        <script src="js/orbitcontrols.js"></script>
+        <script src="lensflare.js"></script>
+		<script>
+        var scene, camera, renderer;
+        var container;
+        var width = window.innerWidth, height = window.innerHeight;
+        var clock = new THREE.Clock();
+        init();
+        function init() {
+          scene = new THREE.Scene();
+
+          camera = new THREE.PerspectiveCamera(50, width/height, .1, 1000);
+          camera.position.set(15, 12, 22);
+          camera.rotation.x = -28.50;
+          camera.rotation.y = 29.14;
+          camera.rotation.z = 14.81;
+          camera.lookAt(scene.position);
+
+
+          var axes = new THREE.AxisHelper(5);
+          // scene.add(axes);
+
+          renderer = new THREE.WebGLRenderer({antialias: true});
+          renderer.setSize(width, height);
+          renderer.setClearColor(0x000000);
+          renderer.gammaInput = true;
+        	renderer.gammaOutput = true;
+
+          controls = new THREE.OrbitControls( camera, renderer.domElement );
+        	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+        	controls.dampingFactor = 0.25;
+        	controls.screenSpacePanning = true;
+        	//controls.maxPolarAngle = Math.PI / 2;
+          controls.zoomSpeed = .05;
+
+          container = document.getElementById('container');
+
+          document.body.appendChild(renderer.domElement);
+
+          createScene();
+
+          // lensflares
+        	var textureLoader = new THREE.TextureLoader();
+        	textureFlare0 = textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/1101105/lensflare0.png');
+        	textureFlare3 = textureLoader.load("https://s3-us-west-2.amazonaws.com/s.cdpn.io/1101105/lensflare3.png");
+        	//addLight( 0.995, 0.5, 0.6, -400, 80, -100);
+          addLight( 0.08, 0.8, 0.9, -400, 10, - 25);
+          document.addEventListener("keydown", onDocumentKeyDown, false);
+          window.addEventListener('resize', onWindowResize, false);
+          render();
+        }
+
+        function addLight( h, s, l, x, y, z ) {
+          var light = new THREE.PointLight( 0xffffff, 1.5, 2000 );
+        	light.color.setHSL( h, s, l );
+        	light.position.set( x, y, z );
+        	scene.add( light );
+        	var lensflare = new THREE.Lensflare();
+        	lensflare.addElement( new THREE.LensflareElement( textureFlare0, 700, 0, light.color ) );
+        	lensflare.addElement( new THREE.LensflareElement( textureFlare3, 60, 0.6 ) );
+        	lensflare.addElement( new THREE.LensflareElement( textureFlare3, 70, 0.7 ) );
+        	lensflare.addElement( new THREE.LensflareElement( textureFlare3, 120, 0.9 ) );
+        	lensflare.addElement( new THREE.LensflareElement( textureFlare3, 70, 1 ) );
+        	light.add( lensflare );
+        }
+
+        function createScene() {
+          var planetGeom = new THREE.IcosahedronBufferGeometry(6, 4);
+          var position = planetGeom.attributes.position;
+        	var colors = [];
+          var color = new THREE.Color();
+        	for ( var i = 0, l = position.count; i < l; i ++ ) {
+            color.setHSL( Math.random() * 0.2 + 0.8, 0.75, Math.random() * 0.9 + 0.75 );
+        	  colors.push( color.r, color.g, color.b );
+        	}
+        	planetGeom.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+          var planetMat = new THREE.MeshStandardMaterial({
+            color: 0xe74b88,
+            vertexColors: THREE.VertexColors,
+            roughness: .9,
+            metalness: 1
+          });
+          var planet = new THREE.Mesh(planetGeom, planetMat);
+          scene.add(planet);
+
+          var stars = new THREE.Group();
+
+          var geometry = createRadialStarGeometry(20000, 20);
+          var material = new THREE.PointsMaterial( {
+        	  size: 4,
+        	  map: createStarTexture('rgba(0,0,15,1)', 'rgba(0,0,0,0)'),
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          stars.add(points);
+
+          var geometry = createRadialStarGeometry(20000, 20);
+          var material = new THREE.PointsMaterial( {
+        	  size: 4,
+        	  map: createStarTexture('rgba(15,0,15,1)', 'rgba(0,0,0,0)'),
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          stars.add( points );
+
+        //
+
+          var geometry = createRadialStarGeometry(20000, 8);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.4,
+        	  map: createStarTexture('rgba(255,205,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points(geometry, material);
+          stars.add(points);
+
+          var geometry = createRadialStarGeometry(20000, 8);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.4,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points(geometry, material);
+          points.rotation.y = Math.PI;
+          stars.add(points);
+
+          var geometry = createRadialStarGeometry(20000, 0.4);
+          var material = new THREE.PointsMaterial({
+        	  size: 0.25,
+        	  map: createStarTexture('rgba(205,205,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points(geometry, material);
+          stars.add(points);
+
+          var geometry = createRadialStarGeometry( 20000, 0.3 );
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.25,
+        	  map: createStarTexture('rgba(255,200,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .1);
+          var material = new THREE.PointsMaterial( {
+        	  size: .5,
+        	  map: createStarTexture('rgba(239,245,248,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .1);
+          var material = new THREE.PointsMaterial( {
+        	  size: .5,
+        	  map: createStarTexture('rgba(239,245,248,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .1);
+          var material = new THREE.PointsMaterial( {
+        	  size: .5,
+        	  map: createStarTexture('rgba(239,245,248,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .1);
+          var material = new THREE.PointsMaterial( {
+        	  size: .5,
+        	  map: createStarTexture('rgba(239,245,248,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .1);
+          var material = new THREE.PointsMaterial( {
+        	  size: .5,
+        	  map: createStarTexture('rgba(239,245,248,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(191,228,255,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .1);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          var geometry = createStarGeometry( 10000, .2);
+          var material = new THREE.PointsMaterial( {
+        	  size: 0.75,
+        	  map: createStarTexture('rgba(255,255,200,1)', 'rgba(0,0,0,0)'),
+        	  blending: THREE.AdditiveBlending,
+        	  depthWrite: false,
+        	  transparent: true
+          });
+
+          var points = new THREE.Points( geometry, material );
+          points.rotation.y = Math.PI;
+          points.position.set(farRandom(), farRandom(), farRandom());
+          stars.add( points );
+
+          scene.add(stars);
+        }
+
+        function createRadialStarGeometry(amount, step) {
+          var vertices = [];
+
+        	for(var i = 2000; i < amount; i += step) {
+
+            var angle = i/1000;
+        		var distance = i/600;
+        		var progress = (i/amount)*4+0.5;
+          vertices.push(progress * random() * random() + Math.sin(angle) * distance, progress * random() * random(), progress * random() * random()+ Math.cos(angle) * distance);
+
+        	}
+
+        	var geometry = new THREE.BufferGeometry();
+        	geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+
+        	return geometry;
+        }
+
+        function createStarGeometry(amount, step) {
+          var vertices = [];
+
+        	for(var i = 1000; i < amount; i += step) {
+
+            var angle = i/100;
+        		var distance = i/1000;
+        		var progress = (i/amount) * 60;
+          vertices.push(progress * random() * random()* distance, progress * random() * random(), progress * random() * random() * distance)
+
+        	}
+
+        	var geometry = new THREE.BufferGeometry();
+        	geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+
+        	return geometry;
+        }
+
+        function createStarTexture(from, to) {
+          var canvas = document.createElement( 'canvas' );
+        	canvas.width = 16;
+        	canvas.height = 16;
+        	var context = canvas.getContext( '2d' );
+        	var gradient = context.createRadialGradient(8,8,0,8,8,8);
+        	gradient.addColorStop(0, from);
+        	gradient.addColorStop(1, to);
+        	context.fillStyle = gradient;
+        	context.fillRect(0, 0, canvas.width, canvas.height);
+        	return new THREE.CanvasTexture(canvas);
+        }
+        var move = true;
+        function render() {
+          requestAnimationFrame(render);
+
+          var time = Date.now();
+
+          if(move) {
+        	  scene.rotation.x = -time / 50000;
+            scene.rotation.y = -time / 9000;
+          }
+          //console.log(camera.position.z);
+          controls.update();
+          renderer.render(scene,camera);
+        }
+
+        function random() {
+          return Math.random() * 2 - 1;
+        }
+
+        function farRandom() {
+          var upOrDown = Math.random();
+          if(upOrDown > .5) {
+            return Math.random() * 100 + 40;
+          } else {
+            return -(Math.random() * 100 + 40);
+          }
+        }
+
+        function onDocumentKeyDown(event) {
+          console.log(event.key);
+          switch(event.key) {
+            case 'p':
+              if(move) {
+                move = false;
+              } else {
+                move = true;
+              }
+              break;
+          }
+        }
+
+        function onWindowResize(){
+          width = window.innerWidth, height = window.innerHeight;
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+          renderer.setSize( width, height );
+        }
+		</script>
+	</body>
+</html>
